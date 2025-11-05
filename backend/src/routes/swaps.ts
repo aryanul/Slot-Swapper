@@ -123,13 +123,13 @@ router.post('/swap-request', authenticateToken, async (req: AuthRequest, res) =>
       status: SwapRequestStatus.PENDING,
     });
 
-    // Populate the swap request
+    // Populate the swap request (using actual field names from schema)
     try {
       await swapRequest.populate([
-        { path: 'requesterSlot' },
-        { path: 'requestedSlot' },
-        { path: 'requester', select: 'name email' },
-        { path: 'requested', select: 'name email' },
+        { path: 'requesterSlotId', select: 'title startTime endTime status userId' },
+        { path: 'requestedSlotId', select: 'title startTime endTime status userId' },
+        { path: 'requesterId', select: 'name email' },
+        { path: 'requestedId', select: 'name email' },
       ]);
     } catch (populateError) {
       console.error('Error populating swap request:', populateError);
@@ -147,25 +147,25 @@ router.post('/swap-request', authenticateToken, async (req: AuthRequest, res) =>
       id: swapObj._id.toString(),
     };
 
-    // Safely format populated fields
-    if (swapRequest.requesterSlot) {
-      const requesterSlotObj = (swapRequest.requesterSlot as any).toObject?.() || swapRequest.requesterSlot;
+    // Safely format populated fields (using actual field names from schema)
+    if ((swapRequest as any).requesterSlotId && typeof (swapRequest as any).requesterSlotId === 'object') {
+      const requesterSlotObj = ((swapRequest as any).requesterSlotId as any).toObject?.() || (swapRequest as any).requesterSlotId;
       formattedRequest.requesterSlot = {
         ...requesterSlotObj,
         id: requesterSlotObj._id?.toString() || requesterSlotObj.id,
       };
     }
 
-    if (swapRequest.requestedSlot) {
-      const requestedSlotObj = (swapRequest.requestedSlot as any).toObject?.() || swapRequest.requestedSlot;
+    if ((swapRequest as any).requestedSlotId && typeof (swapRequest as any).requestedSlotId === 'object') {
+      const requestedSlotObj = ((swapRequest as any).requestedSlotId as any).toObject?.() || (swapRequest as any).requestedSlotId;
       formattedRequest.requestedSlot = {
         ...requestedSlotObj,
         id: requestedSlotObj._id?.toString() || requestedSlotObj.id,
       };
     }
 
-    if (swapRequest.requester) {
-      const requesterObj = (swapRequest.requester as any).toObject?.() || swapRequest.requester;
+    if ((swapRequest as any).requesterId && typeof (swapRequest as any).requesterId === 'object') {
+      const requesterObj = ((swapRequest as any).requesterId as any).toObject?.() || (swapRequest as any).requesterId;
       formattedRequest.requester = {
         id: requesterObj._id?.toString() || requesterObj.id,
         name: requesterObj.name,
@@ -173,8 +173,8 @@ router.post('/swap-request', authenticateToken, async (req: AuthRequest, res) =>
       };
     }
 
-    if (swapRequest.requested) {
-      const requestedObj = (swapRequest.requested as any).toObject?.() || swapRequest.requested;
+    if ((swapRequest as any).requestedId && typeof (swapRequest as any).requestedId === 'object') {
+      const requestedObj = ((swapRequest as any).requestedId as any).toObject?.() || (swapRequest as any).requestedId;
       formattedRequest.requested = {
         id: requestedObj._id?.toString() || requestedObj.id,
         name: requestedObj.name,
@@ -210,8 +210,8 @@ router.post('/swap-response/:requestId', authenticateToken, async (req: AuthRequ
 
     // Find the swap request
     const swapRequest = await SwapRequest.findById(requestId)
-      .populate('requesterSlot')
-      .populate('requestedSlot');
+      .populate('requesterSlotId', 'title startTime endTime status userId')
+      .populate('requestedSlotId', 'title startTime endTime status userId');
 
     if (!swapRequest) {
       return res.status(404).json({ error: 'Swap request not found' });
@@ -233,8 +233,8 @@ router.post('/swap-response/:requestId', authenticateToken, async (req: AuthRequ
 
     if (accepted) {
       // ACCEPT: Swap the owners of the slots
-      const requesterSlot = swapRequest.requesterSlot as any;
-      const requestedSlot = swapRequest.requestedSlot as any;
+      const requesterSlot = (swapRequest as any).requesterSlotId as any;
+      const requestedSlot = (swapRequest as any).requestedSlotId as any;
 
       const requesterSlotUserId = requesterSlot.userId.toString();
       const requestedSlotUserId = requestedSlot.userId.toString();
@@ -327,50 +327,76 @@ router.post('/swap-response/:requestId', authenticateToken, async (req: AuthRequ
 router.get('/swap-requests', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.userId!;
+    console.log('Fetching swap requests for user:', userId);
 
     const [incoming, outgoing] = await Promise.all([
       // Incoming requests (requests made to the user)
       SwapRequest.find({
         requestedId: new mongoose.Types.ObjectId(userId),
       })
-        .populate('requesterSlot')
-        .populate('requestedSlot')
-        .populate('requester', 'name email')
-        .sort({ createdAt: -1 }),
+        .populate('requesterSlotId', 'title startTime endTime status userId')
+        .populate('requestedSlotId', 'title startTime endTime status userId')
+        .populate('requesterId', 'name email')
+        .sort({ createdAt: -1 })
+        .lean(),
 
       // Outgoing requests (requests made by the user)
       SwapRequest.find({
         requesterId: new mongoose.Types.ObjectId(userId),
       })
-        .populate('requesterSlot')
-        .populate('requestedSlot')
-        .populate('requested', 'name email')
-        .sort({ createdAt: -1 }),
+        .populate('requesterSlotId', 'title startTime endTime status userId')
+        .populate('requestedSlotId', 'title startTime endTime status userId')
+        .populate('requestedId', 'name email')
+        .sort({ createdAt: -1 })
+        .lean(),
     ]);
 
-    // Format responses
-    const formatSwapRequest = (req: any) => ({
-      ...req.toObject(),
-      id: req._id.toString(),
-      requesterSlot: {
-        ...(req.requesterSlot as any).toObject(),
-        id: (req.requesterSlot as any)._id.toString(),
-      },
-      requestedSlot: {
-        ...(req.requestedSlot as any).toObject(),
-        id: (req.requestedSlot as any)._id.toString(),
-      },
-      requester: req.requester ? {
-        id: (req.requester as any)._id.toString(),
-        name: (req.requester as any).name,
-        email: (req.requester as any).email,
-      } : undefined,
-      requested: req.requested ? {
-        id: (req.requested as any)._id.toString(),
-        name: (req.requested as any).name,
-        email: (req.requested as any).email,
-      } : undefined,
-    });
+    console.log('Found incoming requests:', incoming.length);
+    console.log('Found outgoing requests:', outgoing.length);
+
+    // Format responses safely (req is already a plain object from .lean())
+    const formatSwapRequest = (req: any) => {
+      const formatted: any = {
+        ...req,
+        id: req._id?.toString() || req.id,
+      };
+
+      // Format requesterSlot (from requesterSlotId)
+      if (req.requesterSlotId && typeof req.requesterSlotId === 'object') {
+        formatted.requesterSlot = {
+          ...req.requesterSlotId,
+          id: req.requesterSlotId._id?.toString() || req.requesterSlotId.id,
+        };
+      }
+
+      // Format requestedSlot (from requestedSlotId)
+      if (req.requestedSlotId && typeof req.requestedSlotId === 'object') {
+        formatted.requestedSlot = {
+          ...req.requestedSlotId,
+          id: req.requestedSlotId._id?.toString() || req.requestedSlotId.id,
+        };
+      }
+
+      // Format requester (from requesterId)
+      if (req.requesterId && typeof req.requesterId === 'object') {
+        formatted.requester = {
+          id: req.requesterId._id?.toString() || req.requesterId.id,
+          name: req.requesterId.name,
+          email: req.requesterId.email,
+        };
+      }
+
+      // Format requested (from requestedId)
+      if (req.requestedId && typeof req.requestedId === 'object') {
+        formatted.requested = {
+          id: req.requestedId._id?.toString() || req.requestedId.id,
+          name: req.requestedId.name,
+          email: req.requestedId.email,
+        };
+      }
+
+      return formatted;
+    };
 
     res.json({
       incoming: incoming.map(formatSwapRequest),

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { eventService } from '../services/api';
 import './Dashboard.css';
 
@@ -20,13 +21,34 @@ export default function Dashboard() {
     endTime: '',
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     loadEvents();
   }, []);
 
+  // Refresh events when navigating to this page
+  useEffect(() => {
+    if (location.pathname === '/dashboard') {
+      loadEvents();
+    }
+  }, [location.pathname]);
+
+  // Also refresh when window gains focus (user returns to tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (location.pathname === '/dashboard') {
+        loadEvents();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [location.pathname]);
+
   const loadEvents = async () => {
     try {
+      setLoading(true);
       const response = await eventService.getAll();
       setEvents(response.data);
     } catch (error) {
@@ -110,9 +132,14 @@ export default function Dashboard() {
     <div className="dashboard">
       <div className="dashboard-header">
         <h2>My Calendar</h2>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-          {showForm ? 'Cancel' : '+ New Event'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={loadEvents} className="btn-secondary" disabled={loading}>
+            {loading ? 'Refreshing...' : '🔄 Refresh'}
+          </button>
+          <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+            {showForm ? 'Cancel' : '+ New Event'}
+          </button>
+        </div>
       </div>
 
       {showForm && (

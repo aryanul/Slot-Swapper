@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { swapService, eventService } from '../services/api';
 import './Notifications.css';
 
@@ -35,6 +36,7 @@ export default function Notifications() {
   const [outgoing, setOutgoing] = useState<SwapRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadRequests();
@@ -43,10 +45,15 @@ export default function Notifications() {
   const loadRequests = async () => {
     try {
       const response = await swapService.getSwapRequests();
-      setIncoming(response.data.incoming);
-      setOutgoing(response.data.outgoing);
-    } catch (error) {
+      console.log('Swap requests response:', response.data);
+      setIncoming(response.data.incoming || []);
+      setOutgoing(response.data.outgoing || []);
+    } catch (error: any) {
       console.error('Failed to load swap requests:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      // Set empty arrays on error to prevent undefined
+      setIncoming([]);
+      setOutgoing([]);
     } finally {
       setLoading(false);
     }
@@ -57,8 +64,15 @@ export default function Notifications() {
     try {
       await swapService.respondToSwap(requestId, accepted);
       await loadRequests();
-      await eventService.getAll(); // Refresh events to see updated calendar
-      alert(accepted ? 'Swap accepted!' : 'Swap rejected.');
+      alert(accepted ? 'Swap accepted! The calendar has been updated.' : 'Swap rejected.');
+      
+      // If swap was accepted, suggest navigating to calendar to see the update
+      if (accepted) {
+        const goToCalendar = confirm('Would you like to view your updated calendar?');
+        if (goToCalendar) {
+          navigate('/dashboard');
+        }
+      }
     } catch (error: any) {
       alert(error.response?.data?.error || 'Failed to process swap request');
     } finally {
