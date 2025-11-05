@@ -1,0 +1,169 @@
+.marketplace {
+  width: 100%;
+}
+
+.marketplace h2 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.marketplace-description {
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.slot-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.slot-header h3 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+}
+
+.slot-details {
+  flex: 1;
+  margin-bottom: 1rem;
+  color: #666;
+}
+
+.slot-details p {
+  margin: 0.5rem 0;
+}
+
+.btn-request {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: auto;
+}
+
+.btn-request:hover:not(:disabled) {
+  background-color: #229954;
+}
+
+.btn-request:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content h3 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.modal-description {
+  margin-bottom: 1.5rem;
+  color: #666;
+}
+
+.no-slots {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+}
+
+.my-slots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.my-slot-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.my-slot-item strong {
+  color: #2c3e50;
+}
+
+.my-slot-item small {
+  color: #666;
+}
+
+.btn-confirm {
+  background-color: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background-color: #5568d3;
+}
+
+.btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  width: 100%;
+  background-color: #95a5a6;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel:hover {
+  background-color: #7f8c8d;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+}
+
