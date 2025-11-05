@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { swapService, eventService } from '../services/api';
 import './Marketplace.css';
 
@@ -30,13 +31,11 @@ export default function Marketplace() {
   const [selectedSlot, setSelectedSlot] = useState<SwappableSlot | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [requesting, setRequesting] = useState(false);
+  const location = useLocation();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
+      setLoading(true);
       const [swappableResponse, myEventsResponse] = await Promise.all([
         swapService.getSwappableSlots(),
         eventService.getAll(),
@@ -50,7 +49,41 @@ export default function Marketplace() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Refresh when navigating to this page
+  useEffect(() => {
+    if (location.pathname === '/marketplace') {
+      loadData();
+    }
+  }, [location.pathname, loadData]);
+
+  // Also refresh when window gains focus (user returns to tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (location.pathname === '/marketplace') {
+        loadData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [location.pathname, loadData]);
+
+  // Auto-refresh every 30 seconds when on marketplace page
+  useEffect(() => {
+    if (location.pathname !== '/marketplace') return;
+
+    const interval = setInterval(() => {
+      loadData();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [location.pathname, loadData]);
 
   const handleRequestSwap = (slot: SwappableSlot) => {
     setSelectedSlot(slot);
@@ -66,7 +99,8 @@ export default function Marketplace() {
       alert('Swap request sent successfully!');
       setShowModal(false);
       setSelectedSlot(null);
-      loadData();
+      // Refresh data to update marketplace (the slot will no longer be swappable)
+      await loadData();
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || 'Failed to create swap request';
       alert(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
@@ -93,7 +127,12 @@ export default function Marketplace() {
 
   return (
     <div className="marketplace">
-      <h2>Available Swappable Slots</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h2>Available Swappable Slots</h2>
+        <button onClick={loadData} className="btn-secondary" disabled={loading}>
+          {loading ? 'Refreshing...' : '🔄 Refresh'}
+        </button>
+      </div>
       <p className="marketplace-description">
         Browse slots from other users that are available for swapping. Click
         "Request Swap" to offer one of your swappable slots in exchange.
