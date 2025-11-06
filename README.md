@@ -671,8 +671,6 @@ Slot-Swapper/
 │   │   ├── middleware/         # Express middleware
 │   │   │   └── auth.ts        # JWT authentication middleware
 │   │   └── server.ts           # Express server setup
-│   ├── Dockerfile              # Backend Docker configuration
-│   ├── .dockerignore           # Docker ignore file
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── README.md
@@ -694,12 +692,12 @@ Slot-Swapper/
 │   │   │   └── api.ts         # Axios API client
 │   │   ├── App.tsx             # Main app component
 │   │   └── main.tsx            # Entry point
-│   ├── Dockerfile              # Frontend Docker configuration
-│   ├── .dockerignore           # Docker ignore file
 │   ├── package.json
 │   ├── vite.config.ts
 │   └── tsconfig.json
-├── docker-compose.yml          # Docker Compose configuration
+├── Dockerfile                  # Unified Dockerfile for both frontend and backend
+├── .dockerignore               # Docker ignore file
+├── docker-compose.yml           # Docker Compose configuration
 ├── README.DOCKER.md            # Docker deployment guide
 └── README.md                   # This file
 ```
@@ -766,19 +764,43 @@ Slot-Swapper/
 
 See [README.DOCKER.md](./README.DOCKER.md) for detailed Docker deployment instructions.
 
-Quick start:
+### Quick Start
+
+The project includes a **single unified Dockerfile** in the root directory that builds both frontend and backend services using multi-stage builds:
+
 ```bash
 # Create .env file in root directory
 DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/slotswapper
 JWT_SECRET=your-secret-key
 
-# Build and run
+# Build and run both services
 docker-compose up -d --build
 ```
 
-Access the application:
-- Frontend: http://localhost
-- Backend API: http://localhost:3001
+### Dockerfile Structure
+
+The root `Dockerfile` uses multi-stage builds with four stages:
+1. **backend-builder**: Compiles TypeScript backend code
+2. **backend**: Production backend image (Node.js)
+3. **frontend-builder**: Builds React frontend with Vite
+4. **frontend**: Production frontend image (Nginx)
+
+Docker Compose uses build targets (`backend` and `frontend`) to create separate containers from the same Dockerfile.
+
+### Access the Application
+
+- **Frontend**: http://localhost
+- **Backend API**: http://localhost:3001
+
+### Build Individual Services
+
+```bash
+# Build backend only
+docker build --target backend -t slotswapper-backend .
+
+# Build frontend only
+docker build --target frontend -t slotswapper-frontend .
+```
 
 ## Development
 
