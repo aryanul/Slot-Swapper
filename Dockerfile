@@ -89,12 +89,17 @@ RUN echo 'server { \
     root /usr/share/nginx/html; \
     index index.html; \
     \
+    # Resolver for dynamic DNS resolution \
+    resolver 127.0.0.11 valid=30s; \
+    \
     location / { \
         try_files $uri $uri/ /index.html; \
     } \
     \
     location /api { \
-        proxy_pass http://backend:3001; \
+        # Use variable to force runtime DNS resolution \
+        set $backend http://backend:3001; \
+        proxy_pass $backend; \
         proxy_http_version 1.1; \
         proxy_set_header Upgrade $http_upgrade; \
         proxy_set_header Connection "upgrade"; \
