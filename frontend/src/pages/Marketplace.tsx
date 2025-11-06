@@ -44,8 +44,8 @@ export default function Marketplace() {
       setMySwappableSlots(
         myEventsResponse.data.filter((e: MySlot) => e.status === 'SWAPPABLE')
       );
-    } catch (error) {
-      console.error('Failed to load data:', error);
+    } catch {
+      // Silently handle error
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,6 @@ export default function Marketplace() {
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || 'Failed to create swap request';
       alert(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
-      console.error('Swap request error:', error);
     } finally {
       setRequesting(false);
     }

@@ -39,8 +39,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     });
 
     res.json(formattedEvents);
-  } catch (error) {
-    console.error('Get events error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -70,8 +69,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
       ...eventObj,
       id: eventObj._id.toString(),
     });
-  } catch (error) {
-    console.error('Get event error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -109,7 +107,6 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       const errorMessages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
       return res.status(400).json({ error: errorMessages });
     }
-    console.error('Create event error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -181,7 +178,6 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
       const errorMessages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
       return res.status(400).json({ error: errorMessages });
     }
-    console.error('Update event error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -223,8 +219,7 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
     await Event.findByIdAndDelete(id);
 
     res.status(204).send();
-  } catch (error) {
-    console.error('Delete event error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -42,8 +42,7 @@ router.get('/swappable-slots', authenticateToken, async (req: AuthRequest, res) 
     }));
 
     res.json(formattedSlots);
-  } catch (error) {
-    console.error('Get swappable slots error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -131,8 +130,7 @@ router.post('/swap-request', authenticateToken, async (req: AuthRequest, res) =>
         { path: 'requesterId', select: 'name email' },
         { path: 'requestedId', select: 'name email' },
       ]);
-    } catch (populateError) {
-      console.error('Error populating swap request:', populateError);
+    } catch {
       // Continue anyway - we can still return the basic swap request
     }
 
@@ -187,11 +185,6 @@ router.post('/swap-request', authenticateToken, async (req: AuthRequest, res) =>
     if (error instanceof z.ZodError) {
       const errorMessages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
       return res.status(400).json({ error: errorMessages });
-    }
-    console.error('Create swap request error:', error);
-    console.error('Error details:', error instanceof Error ? error.message : error);
-    if (error instanceof Error) {
-      console.error('Stack trace:', error.stack);
     }
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -318,7 +311,6 @@ router.post('/swap-response/:requestId', authenticateToken, async (req: AuthRequ
       const errorMessages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
       return res.status(400).json({ error: errorMessages });
     }
-    console.error('Swap response error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -327,7 +319,6 @@ router.post('/swap-response/:requestId', authenticateToken, async (req: AuthRequ
 router.get('/swap-requests', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.userId!;
-    console.log('Fetching swap requests for user:', userId);
 
     const [incoming, outgoing] = await Promise.all([
       // Incoming requests (requests made to the user)
@@ -350,9 +341,6 @@ router.get('/swap-requests', authenticateToken, async (req: AuthRequest, res) =>
         .sort({ createdAt: -1 })
         .lean(),
     ]);
-
-    console.log('Found incoming requests:', incoming.length);
-    console.log('Found outgoing requests:', outgoing.length);
 
     // Format responses safely (req is already a plain object from .lean())
     const formatSwapRequest = (req: any) => {
@@ -402,8 +390,7 @@ router.get('/swap-requests', authenticateToken, async (req: AuthRequest, res) =>
       incoming: incoming.map(formatSwapRequest),
       outgoing: outgoing.map(formatSwapRequest),
     });
-  } catch (error) {
-    console.error('Get swap requests error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });

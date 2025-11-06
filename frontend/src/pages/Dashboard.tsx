@@ -53,12 +53,10 @@ export default function Dashboard() {
   const loadEvents = async () => {
     try {
       setLoading(true);
-      console.log('Loading events...');
       const response = await eventService.getAll();
-      console.log('Events loaded:', response.data.length, 'events');
       setEvents(response.data);
     } catch (error) {
-      console.error('Failed to load events:', error);
+      // Silently handle error - UI will show empty state
     } finally {
       setLoading(false);
     }
@@ -123,11 +121,8 @@ export default function Dashboard() {
     setImportResult(null);
 
     try {
-      console.log('Importing file:', file.name, file.type);
       const response = await importService.importCalendar(file);
-      console.log('Import response:', response.data);
-      
-      const { imported, skipped, message } = response.data;
+      const { skipped, message } = response.data;
       
       let resultMessage = message;
       if (skipped > 0) {
@@ -137,22 +132,16 @@ export default function Dashboard() {
       setImportResult(resultMessage);
       setShowImport(false);
       
-      // Clear file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
       
-      // Force reload events after a short delay to ensure database has updated
       setTimeout(async () => {
-        console.log('Reloading events after import...');
         await loadEvents();
-        console.log('Events reloaded');
       }, 500);
       
-      // Clear result message after 5 seconds
       setTimeout(() => setImportResult(null), 5000);
     } catch (error: any) {
-      console.error('Import error:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to import calendar';
       alert(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     } finally {
@@ -169,19 +158,6 @@ export default function Dashboard() {
       hour: 'numeric',
       minute: '2-digit',
     });
-  };
-
-  const getStatusColor = (status: Event['status']) => {
-    switch (status) {
-      case 'BUSY':
-        return '#95a5a6';
-      case 'SWAPPABLE':
-        return '#27ae60';
-      case 'SWAP_PENDING':
-        return '#f39c12';
-      default:
-        return '#95a5a6';
-    }
   };
 
   if (loading) {
@@ -345,7 +321,7 @@ export default function Dashboard() {
                 required
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="datetime-grid">
               <div className="form-group-compact">
                 <input
                   type="datetime-local"
@@ -380,10 +356,7 @@ export default function Dashboard() {
             <div key={event.id} className="event-card">
               <div className="event-header">
                 <h3>{event.title}</h3>
-                <span
-                  className="status-badge"
-                  style={{ backgroundColor: getStatusColor(event.status) }}
-                >
+                <span className={`status-badge ${event.status}`}>
                   {event.status.replace('_', ' ')}
                 </span>
               </div>

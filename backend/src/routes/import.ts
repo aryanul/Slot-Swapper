@@ -44,22 +44,18 @@ function parseICSFile(buffer: Buffer): Array<{ title: string; startTime: Date; e
         const summary = event.summary || 'Untitled Event';
         
         if (!event.startDate) {
-          console.log('Skipping event without start date:', summary);
           continue;
         }
         
         const startTime = event.startDate.toJSDate();
-        const endTime = event.endDate ? event.endDate.toJSDate() : new Date(startTime.getTime() + 3600000); // Default 1 hour
+        const endTime = event.endDate ? event.endDate.toJSDate() : new Date(startTime.getTime() + 3600000);
 
-        // Validate dates
         if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-          console.log('Skipping event with invalid dates:', summary);
           continue;
         }
 
-        // Only import events that haven't passed (give 1 hour buffer for timezone issues)
         const now = new Date();
-        now.setHours(now.getHours() - 1); // Subtract 1 hour to account for timezone differences
+        now.setHours(now.getHours() - 1);
         
         if (startTime >= now) {
           events.push({
@@ -67,11 +63,8 @@ function parseICSFile(buffer: Buffer): Array<{ title: string; startTime: Date; e
             startTime,
             endTime,
           });
-        } else {
-          console.log('Skipping past event:', summary, 'Start:', startTime);
         }
-      } catch (error) {
-        console.error('Error parsing event:', error);
+      } catch {
         continue;
       }
     }
@@ -129,20 +122,16 @@ function parseCSVFile(buffer: Buffer): Array<{ title: string; startTime: Date; e
         const startTime = new Date(startStr);
         const endTime = new Date(endStr);
 
-        // Validate dates
         if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
-          // Only import events that haven't passed (give 1 hour buffer for timezone issues)
           const now = new Date();
-          now.setHours(now.getHours() - 1); // Subtract 1 hour to account for timezone differences
+          now.setHours(now.getHours() - 1);
           
           if (startTime >= now) {
             events.push({
-              title: title.replace(/^"|"$/g, ''), // Remove quotes
+              title: title.replace(/^"|"$/g, ''),
               startTime,
-              endTime: endTime > startTime ? endTime : new Date(startTime.getTime() + 3600000), // Default 1 hour
+              endTime: endTime > startTime ? endTime : new Date(startTime.getTime() + 3600000),
             });
-          } else {
-            console.log('Skipping past CSV event:', title, 'Start:', startTime);
           }
         }
       } catch (error) {
@@ -182,15 +171,11 @@ router.post('/calendar', authenticateToken, upload.single('file'), async (req: A
       return res.status(400).json({ error: 'No valid events found in the file. Make sure the file contains future events.' });
     }
 
-    // Create events in database
     const createdEvents = [];
     const skippedEvents = [];
 
-    console.log(`Attempting to import ${events.length} events for user ${userId}`);
-
     for (const eventData of events) {
       try {
-        // Check if event already exists (same title and start time within 1 minute tolerance)
         const oneMinute = 60 * 1000;
         const existing = await Event.findOne({
           userId: new mongoose.Types.ObjectId(userId),
@@ -203,14 +188,11 @@ router.post('/calendar', authenticateToken, upload.single('file'), async (req: A
 
         if (existing) {
           skippedEvents.push(eventData.title);
-          console.log('Skipping duplicate event:', eventData.title);
           continue;
         }
 
-        // Validate time range
         if (eventData.endTime <= eventData.startTime) {
           skippedEvents.push(eventData.title);
-          console.log('Skipping event with invalid time range:', eventData.title);
           continue;
         }
 
@@ -222,31 +204,26 @@ router.post('/calendar', authenticateToken, upload.single('file'), async (req: A
           userId: new mongoose.Types.ObjectId(userId),
         });
 
-        console.log('Created event:', event._id, eventData.title);
         createdEvents.push({
           id: event._id.toString(),
           title: event.title,
           startTime: event.startTime,
           endTime: event.endTime,
         });
-      } catch (error) {
-        console.error('Error creating event:', eventData.title, error);
+      } catch {
         skippedEvents.push(eventData.title);
         continue;
       }
     }
-
-    console.log(`Import complete: ${createdEvents.length} created, ${skippedEvents.length} skipped`);
 
     res.json({
       message: `Successfully imported ${createdEvents.length} event(s)`,
       imported: createdEvents.length,
       skipped: skippedEvents.length,
       events: createdEvents,
-      skippedEvents: skippedEvents.slice(0, 10), // Limit skipped events in response
+      skippedEvents: skippedEvents.slice(0, 10),
     });
   } catch (error) {
-    console.error('Import error:', error);
     res.status(500).json({ 
       error: error instanceof Error ? error.message : 'Failed to import calendar file' 
     });

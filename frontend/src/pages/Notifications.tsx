@@ -45,13 +45,9 @@ export default function Notifications() {
   const loadRequests = async () => {
     try {
       const response = await swapService.getSwapRequests();
-      console.log('Swap requests response:', response.data);
       setIncoming(response.data.incoming || []);
       setOutgoing(response.data.outgoing || []);
-    } catch (error: any) {
-      console.error('Failed to load swap requests:', error);
-      console.error('Error details:', error.response?.data || error.message);
-      // Set empty arrays on error to prevent undefined
+    } catch {
       setIncoming([]);
       setOutgoing([]);
     } finally {
