@@ -31,7 +31,7 @@ docker-compose up -d --build
 ```
 
 This will:
-- Build both backend and frontend images
+- Build both backend and frontend images from the single root Dockerfile
 - Start both containers
 - Set up networking between them
 - Run containers in detached mode
@@ -66,9 +66,8 @@ docker-compose up -d --build
 ### Backend
 
 ```bash
-# Build backend image
-cd backend
-docker build -t slotswapper-backend .
+# Build backend image from root directory
+docker build --target backend -t slotswapper-backend .
 
 # Run backend container
 docker run -d \
@@ -82,9 +81,8 @@ docker run -d \
 ### Frontend
 
 ```bash
-# Build frontend image
-cd frontend
-docker build -t slotswapper-frontend .
+# Build frontend image from root directory
+docker build --target frontend -t slotswapper-frontend .
 
 # Run frontend container (requires backend to be accessible)
 docker run -d \
@@ -135,13 +133,38 @@ docker run -d \
 ### Port conflicts
 - Change port mappings in docker-compose.yml if ports 80 or 3001 are already in use
 
+## Dockerfile Structure
+
+The root `Dockerfile` uses multi-stage builds with four stages:
+
+1. **backend-builder**: Builds the TypeScript backend code
+2. **backend**: Production backend image with Node.js
+3. **frontend-builder**: Builds the React frontend with Vite
+4. **frontend**: Production frontend image with Nginx
+
+### Benefits of Single Dockerfile
+
+- **Centralized**: All Docker configuration in one place
+- **Efficient**: Shared build context and better caching
+- **Consistent**: Same base images and build process
+- **Simplified**: Easier to manage and update
+
+### Build Targets
+
+The Dockerfile uses build targets to create separate images:
+- `--target backend` for the backend service
+- `--target frontend` for the frontend service
+
+Docker Compose automatically uses these targets when building.
+
 ## Development vs Production
 
-The Dockerfiles are optimized for production:
+The Dockerfile is optimized for production:
 - Multi-stage builds for smaller images
 - Only production dependencies installed
-- Non-root user for security
+- Non-root user for backend security
 - Health checks included
+- Nginx for frontend serving with SPA routing
 
 For development, continue using `npm run dev` in your local environment.
 
