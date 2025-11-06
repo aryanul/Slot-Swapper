@@ -32,7 +32,7 @@ router.get('/swappable-slots', authenticateToken, async (req: AuthRequest, res) 
     // Transform to match expected format
     const formattedSlots = swappableSlots.map((slot) => ({
       ...slot.toObject(),
-      id: slot._id.toString(),
+      id: (slot._id as mongoose.Types.ObjectId).toString(),
       user: {
         id: (slot.userId as any)._id.toString(),
         name: (slot.userId as any).name,
@@ -142,7 +142,7 @@ router.post('/swap-request', authenticateToken, async (req: AuthRequest, res) =>
     const swapObj = swapRequest.toObject();
     const formattedRequest: any = {
       ...swapObj,
-      id: swapObj._id.toString(),
+      id: (swapObj._id as mongoose.Types.ObjectId).toString(),
     };
 
     // Safely format populated fields (using actual field names from schema)

@@ -205,7 +205,7 @@ router.post('/calendar', authenticateToken, upload.single('file'), async (req: A
         });
 
         createdEvents.push({
-          id: event._id.toString(),
+          id: (event._id as mongoose.Types.ObjectId).toString(),
           title: event.title,
           startTime: event.startTime,
           endTime: event.endTime,

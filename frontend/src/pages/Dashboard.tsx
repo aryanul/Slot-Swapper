@@ -20,7 +20,6 @@ export default function Dashboard() {
     startTime: '',
     endTime: '',
   });
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);

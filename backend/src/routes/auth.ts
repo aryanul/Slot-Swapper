@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import User from '../models/User';
 import { z } from 'zod';
 
@@ -45,13 +46,13 @@ router.post('/signup', async (req, res) => {
       return res.status(500).json({ error: 'JWT secret not configured' });
     }
 
-    const token = jwt.sign({ userId: user._id.toString() }, jwtSecret, {
+    const token = jwt.sign({ userId: (user._id as mongoose.Types.ObjectId).toString() }, jwtSecret, {
       expiresIn: '7d',
     });
 
     res.status(201).json({
       user: {
-        id: user._id.toString(),
+        id: (user._id as mongoose.Types.ObjectId).toString(),
         name: user.name,
         email: user.email,
         createdAt: user.createdAt,
@@ -92,13 +93,13 @@ router.post('/login', async (req, res) => {
       return res.status(500).json({ error: 'JWT secret not configured' });
     }
 
-    const token = jwt.sign({ userId: user._id.toString() }, jwtSecret, {
+    const token = jwt.sign({ userId: (user._id as mongoose.Types.ObjectId).toString() }, jwtSecret, {
       expiresIn: '7d',
     });
 
     res.json({
       user: {
-        id: user._id.toString(),
+        id: (user._id as mongoose.Types.ObjectId).toString(),
         name: user.name,
         email: user.email,
       },

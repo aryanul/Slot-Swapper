@@ -34,7 +34,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
       const eventObj = event.toObject();
       return {
         ...eventObj,
-        id: eventObj._id.toString(),
+        id: (eventObj._id as mongoose.Types.ObjectId).toString(),
       };
     });
 
@@ -67,7 +67,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
     const eventObj = event.toObject();
     res.json({
       ...eventObj,
-      id: eventObj._id.toString(),
+      id: (eventObj._id as mongoose.Types.ObjectId).toString(),
     });
   } catch {
     res.status(500).json({ error: 'Internal server error' });
@@ -100,7 +100,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const eventObj = event.toObject();
     res.status(201).json({
       ...eventObj,
-      id: eventObj._id.toString(),
+      id: (eventObj._id as mongoose.Types.ObjectId).toString(),
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -171,7 +171,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
     const eventObj = event.toObject();
     res.json({
       ...eventObj,
-      id: eventObj._id.toString(),
+      id: (eventObj._id as mongoose.Types.ObjectId).toString(),
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

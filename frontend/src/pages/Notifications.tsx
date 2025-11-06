@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { swapService, eventService } from '../services/api';
+import { swapService } from '../services/api';
 import './Notifications.css';
 
 interface SwapRequest {
