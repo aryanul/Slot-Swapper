@@ -79,12 +79,15 @@ RUN npm run build
 # ============================================
 FROM nginx:alpine AS frontend
 
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+
 # Copy built files from builder stage
 COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
 
-# Create nginx configuration for SPA routing and API proxying
+# Create nginx configuration template with PORT placeholder
 RUN echo 'server { \
-    listen 80; \
+    listen ${PORT}; \
     server_name _; \
     root /usr/share/nginx/html; \
     index index.html; \
@@ -114,15 +117,28 @@ RUN echo 'server { \
         expires 1y; \
         add_header Cache-Control "public, immutable"; \
     } \
-}' > /etc/nginx/conf.d/default.conf
+}' > /etc/nginx/templates/default.conf.template
 
-# Expose port
+# Create startup script that substitutes PORT and starts nginx
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'export PORT=${PORT:-80}' >> /docker-entrypoint.sh && \
+    echo 'envsubst '"'"'$PORT'"'"' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
+
+# Create health check script that uses PORT from environment
+RUN echo '#!/bin/sh' > /healthcheck.sh && \
+    echo 'PORT=${PORT:-80}' >> /healthcheck.sh && \
+    echo 'wget --quiet --tries=1 --spider http://localhost:$PORT/ || exit 1' >> /healthcheck.sh && \
+    chmod +x /healthcheck.sh
+
+# Expose port (will be overridden by Render's PORT env var)
 EXPOSE 80
 
-# Health check
+# Health check (uses PORT from environment)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+  CMD /healthcheck.sh
 
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start Nginx with custom entrypoint
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
