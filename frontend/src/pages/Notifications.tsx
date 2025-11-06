@@ -109,7 +109,19 @@ export default function Notifications() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px',
+        fontSize: '1.2rem',
+        color: '#667eea',
+        fontWeight: 600
+      }}>
+        <div>Loading swap requests...</div>
+      </div>
+    );
   }
 
   return (

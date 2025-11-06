@@ -122,12 +122,24 @@ export default function Marketplace() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px',
+        fontSize: '1.2rem',
+        color: '#667eea',
+        fontWeight: 600
+      }}>
+        <div>Loading marketplace...</div>
+      </div>
+    );
   }
 
   return (
     <div className="marketplace">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div className="marketplace-header">
         <h2>Available Swappable Slots</h2>
         <button onClick={loadData} className="btn-secondary" disabled={loading}>
           {loading ? 'Refreshing...' : '🔄 Refresh'}

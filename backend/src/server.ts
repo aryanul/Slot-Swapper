@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/auth';
 import eventRoutes from './routes/events';
 import swapRoutes from './routes/swaps';
+import importRoutes from './routes/import';
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ mongoose
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', swapRoutes);
+app.use('/api/import', importRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

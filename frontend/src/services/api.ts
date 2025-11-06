@@ -52,5 +52,17 @@ export const swapService = {
   getSwapRequests: () => api.get('/swap-requests'),
 };
 
+export const importService = {
+  importCalendar: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/import/calendar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+};
+
 export default api;
 

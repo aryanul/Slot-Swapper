@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { eventService } from '../services/api';
+import { eventService, importService } from '../services/api';
 import './Dashboard.css';
 
 interface Event {
@@ -21,6 +21,10 @@ export default function Dashboard() {
     endTime: '',
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -49,7 +53,9 @@ export default function Dashboard() {
   const loadEvents = async () => {
     try {
       setLoading(true);
+      console.log('Loading events...');
       const response = await eventService.getAll();
+      console.log('Events loaded:', response.data.length, 'events');
       setEvents(response.data);
     } catch (error) {
       console.error('Failed to load events:', error);
@@ -100,6 +106,60 @@ export default function Dashboard() {
     }
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validExtensions = ['.ics', '.ical', '.csv'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!validExtensions.includes(fileExtension)) {
+      alert('Please select a valid calendar file (.ics, .ical, or .csv)');
+      return;
+    }
+
+    setImporting(true);
+    setImportResult(null);
+
+    try {
+      console.log('Importing file:', file.name, file.type);
+      const response = await importService.importCalendar(file);
+      console.log('Import response:', response.data);
+      
+      const { imported, skipped, message } = response.data;
+      
+      let resultMessage = message;
+      if (skipped > 0) {
+        resultMessage += ` (${skipped} event(s) skipped - duplicates or invalid)`;
+      }
+      
+      setImportResult(resultMessage);
+      setShowImport(false);
+      
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+      // Force reload events after a short delay to ensure database has updated
+      setTimeout(async () => {
+        console.log('Reloading events after import...');
+        await loadEvents();
+        console.log('Events reloaded');
+      }, 500);
+      
+      // Clear result message after 5 seconds
+      setTimeout(() => setImportResult(null), 5000);
+    } catch (error: any) {
+      console.error('Import error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to import calendar';
+      alert(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-US', {
@@ -125,14 +185,29 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px',
+        fontSize: '1.2rem',
+        color: '#667eea',
+        fontWeight: 600
+      }}>
+        <div>Loading your calendar...</div>
+      </div>
+    );
   }
 
   return (
     <div className="dashboard">
       <div className="dashboard-header">
         <h2>My Calendar</h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button onClick={() => setShowImport(!showImport)} className="btn-secondary" disabled={importing}>
+            {importing ? 'Importing...' : '📅 Import Calendar'}
+          </button>
           <button onClick={loadEvents} className="btn-secondary" disabled={loading}>
             {loading ? 'Refreshing...' : '🔄 Refresh'}
           </button>
@@ -142,38 +217,153 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {importResult && (
+        <div className="import-result" style={{
+          padding: '1rem 1.5rem',
+          marginBottom: '1.5rem',
+          background: 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)',
+          color: '#155724',
+          borderRadius: '12px',
+          border: '2px solid #c3e6cb',
+          fontWeight: 600,
+        }}>
+          ✓ {importResult}
+        </div>
+      )}
+
+      {showImport && (
+        <div className="event-form import-form">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0 }}>Import Calendar</h3>
+            <button
+              onClick={() => {
+                setShowImport(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
+              className="btn-cancel"
+              disabled={importing}
+              style={{ 
+                padding: '0.25rem', 
+                fontSize: '0.75rem', 
+                width: '1.75rem', 
+                height: '1.75rem', 
+                minWidth: '1.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: '1'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="file-upload-area">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".ics,.ical,.csv,text/calendar,text/csv"
+              onChange={handleFileSelect}
+              disabled={importing}
+              id="calendar-file-input"
+              style={{ display: 'none' }}
+            />
+            <label
+              htmlFor="calendar-file-input"
+              className="file-upload-label"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.9rem 1.25rem',
+                border: '2px dashed #667eea',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                cursor: importing ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!importing) {
+                  e.currentTarget.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+                  e.currentTarget.style.borderColor = '#764ba2';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!importing) {
+                  e.currentTarget.style.backgroundColor = 'rgba(102, 126, 234, 0.05)';
+                  e.currentTarget.style.borderColor = '#667eea';
+                }
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>📅</span>
+              <span style={{ fontSize: '0.95rem', color: '#2c3e50', fontWeight: 500 }}>
+                {importing ? 'Importing...' : 'Choose file (.ics, .ical, .csv)'}
+              </span>
+            </label>
+          </div>
+
+          <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#666', lineHeight: '1.5' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Export from:</strong> Google Calendar (Settings), Outlook (File → Export), Apple Calendar (File → Export)
+            </div>
+            <div style={{ color: '#999', fontStyle: 'italic' }}>
+              Only future events imported. Duplicates skipped.
+            </div>
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <div className="event-form">
-          <h3>Create New Event</h3>
-          <form onSubmit={handleCreateEvent}>
-            <div className="form-group">
-              <label>Title</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0 }}>New Event</h3>
+            <button
+              onClick={() => setShowForm(false)}
+              className="btn-cancel"
+              style={{ 
+                padding: '0.25rem', 
+                fontSize: '0.75rem', 
+                width: '1.75rem', 
+                height: '1.75rem', 
+                minWidth: '1.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: '1'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <form onSubmit={handleCreateEvent} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="form-group-compact">
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Event title"
                 required
               />
             </div>
-            <div className="form-group">
-              <label>Start Time</label>
-              <input
-                type="datetime-local"
-                value={formData.startTime}
-                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                required
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group-compact">
+                <input
+                  type="datetime-local"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group-compact">
+                <input
+                  type="datetime-local"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  required
+                />
+              </div>
             </div>
-            <div className="form-group">
-              <label>End Time</label>
-              <input
-                type="datetime-local"
-                value={formData.endTime}
-                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                required
-              />
-            </div>
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary" style={{ marginTop: '0.5rem', padding: '0.75rem 1.5rem', fontSize: '0.95rem' }}>
               Create Event
             </button>
           </form>
