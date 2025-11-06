@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
+// Use environment variable for API URL, fallback to Render backend URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://slot-swapper-tozg.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
